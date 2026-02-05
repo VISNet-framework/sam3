@@ -12,12 +12,13 @@ from copy import deepcopy
 
 import submitit
 import torch
-from hydra import compose, initialize_config_module
+from hydra import compose, initialize_config_module, initialize_config_dir
 from hydra.utils import instantiate
 from iopath.common.file_io import g_pathmgr
 from omegaconf import OmegaConf
 from sam3.train.utils.train_utils import makedir, register_omegaconf_resolvers
 from tqdm import tqdm
+from sam3.train.utils.freeze_utils import apply_freezing_from_config
 
 
 os.environ["HYDRA_FULL_ERROR"] = "1"
@@ -54,6 +55,10 @@ def single_proc_run(local_rank, main_port, cfg, world_size):
         logging.info(e)
 
     trainer = instantiate(cfg.trainer, _recursive_=False)
+    if 'freezing' in cfg:
+        apply_freezing_from_config(trainer.model, cfg.freezing)
+    else:
+        print("\n⚠️  No freezing configuration found, all parameters trainable\n")
     trainer.run()
 
 
@@ -310,7 +315,7 @@ def main(args) -> None:
 
 
 if __name__ == "__main__":
-    initialize_config_module("sam3.train", version_base="1.2")
+    # initialize_config_module("sam3.train", version_base="1.2")
     parser = ArgumentParser()
     parser.add_argument(
         "-c",
@@ -318,6 +323,12 @@ if __name__ == "__main__":
         required=True,
         type=str,
         help="path to config file (e.g. configs/roboflow_v100_full_ft_100_images.yaml)",
+    )
+    parser.add_argument(
+        "--config-path",
+        type=str,
+        default=None,
+        help="Directory to search for config files (default: sam3.train module)",
     )
     parser.add_argument(
         "--use-cluster",
@@ -333,6 +344,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num-nodes", type=int, default=None, help="Number of nodes")
     args = parser.parse_args()
+    
+    # Initialize Hydra with custom config path if provided
+    if args.config_path:
+        config_dir = os.path.abspath(args.config_path)
+        initialize_config_dir(config_dir=config_dir, version_base="1.2")
+    else:
+        initialize_config_module("sam3.train", version_base="1.2")
+    
     args.use_cluster = bool(args.use_cluster) if args.use_cluster is not None else None
     register_omegaconf_resolvers()
     main(args)
