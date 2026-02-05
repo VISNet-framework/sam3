@@ -530,7 +530,7 @@ def _load_checkpoint(model, checkpoint_path):
     if "model" in ckpt and isinstance(ckpt["model"], dict):
         ckpt = ckpt["model"]
     sam3_image_ckpt = {
-        k.replace("detector.", ""): v for k, v in ckpt.items() if "detector" in k
+        k.replace("detector.", ""): v for k, v in ckpt.items() #if "detector" in k
     }
     if model.inst_interactive_predictor is not None:
         sam3_image_ckpt.update(
