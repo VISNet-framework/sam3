@@ -59,7 +59,7 @@ notebooks = [
     "ipycanvas",
     "ipympl",
     "pycocotools",
-    "decord",
+    # "decord", # disabled for dgx_spark
     "opencv-python",
     "einops",
     "scikit-image",
